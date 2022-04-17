@@ -16,79 +16,88 @@
 
 package com.facebook.testing.screenshot.build
 
-import com.android.build.gradle.api.ApkVariantOutput
-import com.android.build.gradle.api.TestVariant
-import java.io.File
 import org.gradle.api.Project
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.TaskAction
+import java.io.File
+
 
 open class PullScreenshotsTask : ScreenshotTask() {
   companion object {
-    fun taskName(variant: TestVariant) = "pull${variant.name.capitalize()}Screenshots"
+    fun taskName(variantName: VariantNameProvider) = "pull${variantName().capitalize()}Screenshots"
 
-    fun getReportDir(project: Project, variant: TestVariant): File =
-        File(project.buildDir, "screenshots" + variant.name.capitalize())
+    fun getReportDir(project: Project, variantName: VariantNameProvider): File =
+        File(project.buildDir, "screenshots" + variantName().capitalize())
   }
 
   private lateinit var apkPath: File
 
-  @Input protected var verify = false
+  @Input
+  protected var verify = false
 
-  @Input protected var record = false
+  @Input
+  protected var record = false
 
-  @Input protected var bundleResults = false
+  @Input
+  protected var bundleResults = false
 
-  @Input protected lateinit var testRunId: String
+  @Input
+  protected lateinit var testRunId: String
 
   init {
     description = "Pull screenshots from your device"
     group = ScreenshotsPlugin.GROUP
   }
 
-  override fun init(variant: TestVariant, extension: ScreenshotsPluginExtension) {
-    super.init(variant, extension)
-    val output =
-        variant.outputs.find { it is ApkVariantOutput } as? ApkVariantOutput
-            ?: throw IllegalArgumentException("Can't find APK output")
-    val packageTask =
-        variant.packageApplicationProvider.orNull
-            ?: throw IllegalArgumentException("Can't find package application provider")
+  override fun init(
+      variantNameProvider: VariantNameProvider,
+      apkOutputDirectoryProvider: ApkOutputDirectoryProvider,
+      apkFilenameProvider: ApkFilenameProvider,
+      extensionProvider: ExtensionProvider,
+      instrumentationTaskProvider: InstrumentationTaskProvider,
+  ) {
+    super.init(
+        variantNameProvider,
+        apkOutputDirectoryProvider,
+        apkFilenameProvider,
+        extensionProvider,
+        instrumentationTaskProvider,
+    )
 
-    apkPath = File(packageTask.outputDirectory.asFile.get(), output.outputFileName)
-    bundleResults = extension.bundleResults
-    testRunId = extension.testRunId
+    apkPath = File(apkOutputDirectoryProvider(), apkFilenameProvider())
+    bundleResults = extensionProvider().bundleResults
+    testRunId = extensionProvider().testRunId
   }
 
   @TaskAction
   fun pullScreenshots() {
     val codeSource = ScreenshotsPlugin::class.java.protectionDomain.codeSource
     val jarFile = File(codeSource.location.toURI().path)
-    val isVerifyOnly = verify && extension.referenceDir != null
+    val isVerifyOnly = verify && extensionProvider().referenceDir != null
 
     val outputDir =
         if (isVerifyOnly) {
-          File(extension.referenceDir)
+          File(extensionProvider().referenceDir)
         } else {
-          getReportDir(project, variant)
+          getReportDir(project, variantNameProvider)
         }
 
     assert(if (isVerifyOnly) outputDir.exists() else !outputDir.exists())
 
     project.exec {
-      it.executable = extension.pythonExecutable
+      it.executable = extensionProvider().pythonExecutable
       it.environment("PYTHONPATH", jarFile)
 
       it.args =
           mutableListOf(
-                  "-m",
-                  "android_screenshot_tests.pull_screenshots",
-                  "--apk",
-                  apkPath.absolutePath,
-                  "--test-run-id",
-                  testRunId,
-                  "--temp-dir",
-                  outputDir.absolutePath)
+              "-m",
+              "android_screenshot_tests.pull_screenshots",
+              "--apk",
+              apkPath.absolutePath,
+              "--test-run-id",
+              testRunId,
+              "--temp-dir",
+              outputDir.absolutePath)
               .apply {
                 if (verify) {
                   add("--verify")
@@ -97,17 +106,17 @@ open class PullScreenshotsTask : ScreenshotTask() {
                 }
 
                 if (verify || record) {
-                  add(extension.recordDir)
+                  add(extensionProvider().recordDir)
                 }
 
-                if (verify && extension.failureDir != null) {
+                if (verify && extensionProvider().failureDir != null) {
                   add("--failure-dir")
-                  add("${extension.failureDir}")
+                  add("${extensionProvider().failureDir}")
                 }
 
-                if (extension.multipleDevices) {
+                if (extensionProvider().multipleDevices) {
                   add("--multiple-devices")
-                  add("${extension.multipleDevices}")
+                  add("${extensionProvider().multipleDevices}")
                 }
 
                 if (isVerifyOnly) {

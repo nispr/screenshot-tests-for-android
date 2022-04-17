@@ -16,12 +16,11 @@
 
 package com.facebook.testing.screenshot.build
 
-import com.android.build.gradle.api.TestVariant
 import org.gradle.api.tasks.TaskAction
 
 open class CleanScreenshotsTask : ScreenshotTask() {
   companion object {
-    fun taskName(variant: TestVariant) = "clean${variant.name.capitalize()}Screenshots"
+    fun taskName(variant: VariantNameProvider) = "clean${variant().capitalize()}Screenshots"
   }
 
   init {
@@ -31,7 +30,7 @@ open class CleanScreenshotsTask : ScreenshotTask() {
 
   @TaskAction
   fun cleanScreenshots() {
-    val outputDir = PullScreenshotsTask.getReportDir(project, variant)
+    val outputDir = PullScreenshotsTask.getReportDir(project, variantNameProvider)
     project.delete(outputDir)
   }
 }

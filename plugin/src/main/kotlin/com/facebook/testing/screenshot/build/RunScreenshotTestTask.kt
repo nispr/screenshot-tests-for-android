@@ -16,11 +16,9 @@
 
 package com.facebook.testing.screenshot.build
 
-import com.android.build.gradle.api.TestVariant
-
 open class RunScreenshotTestTask : PullScreenshotsTask() {
   companion object {
-    fun taskName(variant: TestVariant) = "run${variant.name.capitalize()}ScreenshotTest"
+    fun taskName(variant: VariantNameProvider) = "run${variant().capitalize()}ScreenshotTest"
   }
 
   init {
@@ -28,14 +26,26 @@ open class RunScreenshotTestTask : PullScreenshotsTask() {
     group = ScreenshotsPlugin.GROUP
   }
 
-  override fun init(variant: TestVariant, extension: ScreenshotsPluginExtension) {
-    super.init(variant, extension)
+  override fun init(
+      variantNameProvider: VariantNameProvider,
+      apkOutputDirectoryProvider: ApkOutputDirectoryProvider,
+      apkFilenameProvider: ApkFilenameProvider,
+      extensionProvider: ExtensionProvider,
+      instrumentationTaskProvider: InstrumentationTaskProvider,
+  ) {
+    super.init(
+        variantNameProvider,
+        apkOutputDirectoryProvider,
+        apkFilenameProvider,
+        extensionProvider,
+        instrumentationTaskProvider,
+    )
 
-    if (verify && extension.referenceDir != null) {
+    if (verify && extensionProvider().referenceDir != null) {
       return
     }
 
-    dependsOn(variant.connectedInstrumentTestProvider)
-    mustRunAfter(variant.connectedInstrumentTestProvider)
+    dependsOn(instrumentationTaskProvider())
+    mustRunAfter(instrumentationTaskProvider())
   }
 }

@@ -16,11 +16,9 @@
 
 package com.facebook.testing.screenshot.build
 
-import com.android.build.gradle.api.TestVariant
-
 open class VerifyScreenshotTestTask : RunScreenshotTestTask() {
   companion object {
-    fun taskName(variant: TestVariant) = "verify${variant.name.capitalize()}ScreenshotTest"
+    fun taskName(variant: VariantNameProvider) = "verify${variant().capitalize()}ScreenshotTest"
   }
 
   init {

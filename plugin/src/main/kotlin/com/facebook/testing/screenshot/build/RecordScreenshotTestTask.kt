@@ -16,11 +16,9 @@
 
 package com.facebook.testing.screenshot.build
 
-import com.android.build.gradle.api.TestVariant
-
 open class RecordScreenshotTestTask : RunScreenshotTestTask() {
   companion object {
-    fun taskName(variant: TestVariant) = "record${variant.name.capitalize()}ScreenshotTest"
+    fun taskName(variant: VariantNameProvider) = "record${variant().capitalize()}ScreenshotTest"
   }
 
   init {
@@ -29,8 +27,20 @@ open class RecordScreenshotTestTask : RunScreenshotTestTask() {
     group = ScreenshotsPlugin.GROUP
   }
 
-  override fun init(variant: TestVariant, extension: ScreenshotsPluginExtension) {
-    super.init(variant, extension)
+  override fun init(
+      variantNameProvider: VariantNameProvider,
+      apkOutputDirectoryProvider: ApkOutputDirectoryProvider,
+      apkFilenameProvider: ApkFilenameProvider,
+      extensionProvider: ExtensionProvider,
+      instrumentationTaskProvider: InstrumentationTaskProvider,
+  ) {
+    super.init(
+        variantNameProvider,
+        apkOutputDirectoryProvider,
+        apkFilenameProvider,
+        extensionProvider,
+        instrumentationTaskProvider,
+    )
     record = true
   }
 }
